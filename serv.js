@@ -14,8 +14,15 @@ const pages = {
   "/about": "./about.html",
   "/home": "./index.html",
   "/contact": "./contact.html",
+  "/thank_you": "./thank_you.html",
 };
 const server = http.createServer((req, res) => {
+  const ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+  const userAgent = req.headers["user-agent"];
+  const referer = req.headers["referer"] || req.headers["referrer"];
+  console.log(
+    `${req.url}\0${ip}\0${userAgent}\0${referer}`
+  );
   if (pages[req.url])
     res.writeHead(200, html_headers),
       fs.createReadStream(pages[req.url]).pipe(res);
@@ -23,24 +30,17 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, css_headers),
       fs.createReadStream("./style.css").pipe(res);
   else if (assets[req.url]) fs.createReadStream("./assets" + req.url).pipe(res);
+  else if (req.url === "/submit")
+    req
+      .take(1)
+      .on("data", (chunk) => console.log(chunk.slice(0, 202).toString()))
+      .on(
+        "end",
+        () => (res.writeHead(301, { Location: "/thank_you" }), res.end())
+      );
   else fs.createReadStream("./404.html").pipe(res);
 });
-
 const port = 7000;
 server.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
-const axios = require("axios");
-async function checkBalance(address) {
-  try {
-    const response = await axios.get(
-      `https://api.blockcypher.com/v1/btc/main/addrs/${address}`
-    );
-    const balance = response.data.balance;
-    console.log(`The balance of address ${address} is ${balance} satoshis.`);
-  } catch (error) {
-    console.error(
-      `An error occurred while checking the balance of address ${address}: ${error.message}`
-    );
-  }
-}
