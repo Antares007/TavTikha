@@ -3,13 +3,27 @@ const fs = require("fs");
 const assets = fs
   .readdirSync("assets")
   .reduce((a, b) => ((a["/" + b.toLowerCase()] = 1), a), {});
+const html_headers = {
+  "Content-Type": "text/html",
+};
+const css_headers = {
+  "Content-Type": "text/css",
+};
+const pages = {
+  "/": "./index.html",
+  "/about": "./about.html",
+  "/home": "./index.html",
+  "/contact": "./contact.html",
+};
 const server = http.createServer((req, res) => {
-  if (req.url === "/") {
-    res.writeHead(200, { "Content-Type": "text/html" });
-    fs.createReadStream("./index2.html").pipe(res);
-  } else if (assets[req.url]) {
-    fs.createReadStream("./assets" + req.url).pipe(res);
-  }
+  if (pages[req.url])
+    res.writeHead(200, html_headers),
+      fs.createReadStream(pages[req.url]).pipe(res);
+  else if (req.url === "/style.css")
+    res.writeHead(200, css_headers),
+      fs.createReadStream("./style.css").pipe(res);
+  else if (assets[req.url]) fs.createReadStream("./assets" + req.url).pipe(res);
+  else fs.createReadStream("./404.html").pipe(res);
 });
 
 const port = 7000;
